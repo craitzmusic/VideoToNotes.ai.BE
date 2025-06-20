@@ -1,0 +1,12 @@
+fastapi[all]
+uvicorn
+openai-whisper
+ffmpeg-python
+python-dotenv
+openai
+certifi
+python-multipart
+yt-dlp
+transformers
+torch
+python-jose[cryptography]
