@@ -15,6 +15,7 @@ from jose import jwt, JWTError
 from questions import router as questions_router
 from flashcards import router as flashcards_router
 from utils import verify_token, client
+from studyplan import router as studyplan_router
 
 # Desativa /docs, /redoc e /openapi.json
 app = FastAPI(
@@ -242,3 +243,4 @@ async def transcribe_youtube(req: YoutubeRequest, user=Depends(verify_token)):
 
 app.include_router(questions_router)
 app.include_router(flashcards_router)
+app.include_router(studyplan_router)
