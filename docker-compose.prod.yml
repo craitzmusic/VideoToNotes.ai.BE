@@ -8,7 +8,6 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=development
-    volumes:
-      - ./app:/app
- 
+      - NODE_ENV=production
+    restart: unless-stopped
+    # Sem volumes de código em produção 
