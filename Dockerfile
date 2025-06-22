@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code and files that change frequently
 COPY app /app
 
-# Ensure the cookies file has the correct permissions and ownership
-RUN chmod 644 /app/youtube_cookies.txt && chown appuser:appuser /app/youtube_cookies.txt
-
 # Set the user to non-root for security
 USER appuser
 
