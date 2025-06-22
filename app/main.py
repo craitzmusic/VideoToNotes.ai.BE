@@ -194,6 +194,7 @@ async def transcribe_youtube(req: YoutubeRequest, user=Depends(verify_token)):
             'downloader': 'aria2c',
             'external_downloader_args': ['-x', '4', '-k', '1M'],
             'verbose': True,
+            'cookiefile': 'youtube_cookies.txt',
             'postprocessors': []
         }
 
