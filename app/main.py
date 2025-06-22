@@ -9,7 +9,6 @@ import tempfile
 import whisper
 import os
 from openai import OpenAI
-import yt_dlp
 from transformers import pipeline
 from jose import jwt, JWTError
 from questions import router as questions_router
@@ -101,20 +100,6 @@ def extract_audio_from_video(video_path, audio_path):
     subprocess.run(command, check=True)
 
 
-class YoutubeRequest(BaseModel):
-    url: HttpUrl
-    provider: str | None = None
-
-
-def transcribe_with_openai_whisper(file_path: str) -> str:
-    with open(file_path, "rb") as audio_file:
-        response = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        )
-        return response.text
-
-
 @app.post("/transcribe")
 async def transcribe_audio_or_video(
     request: Request,
@@ -169,91 +154,13 @@ async def transcribe_audio_or_video(
                 pass
 
 
-@app.post("/transcribe_youtube")
-async def transcribe_youtube(req: YoutubeRequest, user=Depends(verify_token)):
-
-    print(f"Authenticated user: {user['email']}")
-
-    provider = req.provider
-    url = str(req.url)
-
-    try:
-        print("Starting download:", url)
-        # Check if cookies file exists and is readable
-        cookies_path = "youtube_cookies.txt"
-        print("[DEBUG] Checking cookies file existence:", os.path.exists(cookies_path))
-        if os.path.exists(cookies_path):
-            print("[DEBUG] Cookies file permissions:", oct(os.stat(cookies_path).st_mode))
-            try:
-                with open(cookies_path, 'r') as f:
-                    first_line = f.readline()
-                    print("[DEBUG] First line of cookies file:", first_line)
-            except Exception as e:
-                print("[DEBUG] Error reading cookies file:", e)
-        else:
-            print("[DEBUG] Cookies file NOT FOUND!")
-
-        ydl_opts = {
-            'format': 'bestaudio[ext=webm]/bestaudio',
-            'outtmpl': '/tmp/audio.%(ext)s',
-            'overwrites': True,
-            'quiet': True,
-            'noplaylist': True,
-            'no_warnings': True,
-            'writesubtitles': False,
-            'writeautomaticsub': False,
-            'writeinfojson': False,
-            'write_all_thumbnails': False,
-            'downloader': 'aria2c',
-            'external_downloader_args': ['-x', '4', '-k', '1M'],
-            'verbose': True,
-            'cookiefile': cookies_path,
-            'postprocessors': []
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            print("Metadata:", info)
-
-            audio_file = ydl.prepare_filename(info)
-            if not os.path.exists(audio_file):
-                raise RuntimeError(f"File not found: {audio_file}")
-
-        print("Transcribing:", audio_file)
-
-        if provider == "openai" and OPENAI_API_KEY:
-            print("Using OpenAI Whisper API")
-            text = transcribe_with_openai_whisper(audio_file)
-        else:
-            print("Using local Whisper model")
-            result = model.transcribe(audio_file, language="en")
-            text = result["text"]
-
-        summary = summarize_text(text, provider)
-
-        # Extract relevant metadata fields for frontend
-        metadata = {
-            "title": info.get("title"),
-            "duration": info.get("duration"),  # in seconds
-            "upload_date": info.get("upload_date"),  # YYYYMMDD string
-            "uploader": info.get("uploader"),
-            "view_count": info.get("view_count"),
-            "like_count": info.get("like_count"),
-            "description": info.get("description"),
-            "webpage_url": info.get("webpage_url"),
-        }
-
-        print("Returning metadata:", metadata)
-
-        return {
-            "text": text,
-            "summary": summary,
-            "metadata": metadata,
-        }
-
-    except Exception as e:
-        print("Error:", str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+def transcribe_with_openai_whisper(file_path: str) -> str:
+    with open(file_path, "rb") as audio_file:
+        response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+        return response.text
 
 app.include_router(questions_router)
 app.include_router(flashcards_router)
