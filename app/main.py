@@ -179,6 +179,19 @@ async def transcribe_youtube(req: YoutubeRequest, user=Depends(verify_token)):
 
     try:
         print("Starting download:", url)
+        # Check if cookies file exists and is readable
+        cookies_path = "youtube_cookies.txt"
+        print("[DEBUG] Checking cookies file existence:", os.path.exists(cookies_path))
+        if os.path.exists(cookies_path):
+            print("[DEBUG] Cookies file permissions:", oct(os.stat(cookies_path).st_mode))
+            try:
+                with open(cookies_path, 'r') as f:
+                    first_line = f.readline()
+                    print("[DEBUG] First line of cookies file:", first_line)
+            except Exception as e:
+                print("[DEBUG] Error reading cookies file:", e)
+        else:
+            print("[DEBUG] Cookies file NOT FOUND!")
 
         ydl_opts = {
             'format': 'bestaudio[ext=webm]/bestaudio',
@@ -194,7 +207,7 @@ async def transcribe_youtube(req: YoutubeRequest, user=Depends(verify_token)):
             'downloader': 'aria2c',
             'external_downloader_args': ['-x', '4', '-k', '1M'],
             'verbose': True,
-            'cookiefile': 'youtube_cookies.txt',
+            'cookiefile': cookies_path,
             'postprocessors': []
         }
 
