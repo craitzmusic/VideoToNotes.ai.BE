@@ -93,7 +93,9 @@ def extract_audio_from_video(video_path, audio_path):
         "-y",
         "-i", video_path,
         "-vn",
-        "-acodec", "pcm_s16le",
+        "-acodec", "aac",
+        "-b:a", "48k",
+        "-ac", "1",
         "-ar", "16000",
         audio_path,
     ]
@@ -116,7 +118,7 @@ async def transcribe_audio_or_video(
     try:
         # Determine audio path
         if suffix in [".mp4", ".mov", ".mkv", ".avi", ".flv", ".wmv"]:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as audio_tmp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as audio_tmp:
                 extract_audio_from_video(tmp_path, audio_tmp.name)
                 audio_path = audio_tmp.name
         elif suffix in [".mp3", ".wav", ".m4a", ".aac", ".flac"]:
