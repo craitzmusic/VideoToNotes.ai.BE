@@ -2,25 +2,27 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Install system dependencies (rarely changes)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     aria2 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user before copying files
+RUN useradd -m appuser
+
+# Copy only requirements and install Python dependencies (rarely changes)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code and files that change frequently
 COPY app /app
-RUN chmod 644 /app/youtube_cookies.txt
-RUN chown appuser:appuser /app/youtube_cookies.txt
 
-# Adiciona argumento para modo de execução (dev ou prod)
-ARG MODE=prod
-ENV MODE=${MODE}
+# Ensure the cookies file has the correct permissions and ownership
+RUN chmod 644 /app/youtube_cookies.txt && chown appuser:appuser /app/youtube_cookies.txt
 
-# Recomenda rodar como usuário não-root em produção
-RUN useradd -m appuser
+# Set the user to non-root for security
 USER appuser
 
-# Por padrão, executa o servidor Uvicorn em modo produção
+# Default: run Uvicorn server in production mode
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
