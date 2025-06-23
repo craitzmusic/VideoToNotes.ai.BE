@@ -19,7 +19,7 @@ class QuestionRequest(BaseModel):
 # Response model for a single question
 class Question(BaseModel):
     enunciado: str  # The question statement
-    alternativas: List[str]  # List of answer alternatives
+    alternativas: List[str]  # List of the answer alternatives
     correta: int  # Index of the correct alternative
     explicacao: str | None = None  # Optional explanation for the answer
 
