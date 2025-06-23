@@ -15,6 +15,7 @@ from questions import router as questions_router
 from flashcards import router as flashcards_router
 from utils import verify_token, client
 from studyplan import router as studyplan_router
+import time
 
 # =============================
 # FastAPI application instance
@@ -151,6 +152,7 @@ async def transcribe_audio_or_video(
     transcribes using OpenAI Whisper API or local Whisper model,
     summarizes the transcription, and returns both.
     The provider can be set via query string (?provider=openai or ?provider=t5).
+    Logs the time spent in each main operation.
     """
     provider = request.query_params.get("provider")  # e.g., ?provider=openai
     suffix = os.path.splitext(file.filename)[1].lower()
@@ -161,7 +163,8 @@ async def transcribe_audio_or_video(
         tmp_path = tmp.name
 
     try:
-        # Determine audio path: extract if video, use as-is if audio
+        # 1) Audio extraction timing
+        audio_extraction_start = time.perf_counter()
         if suffix in [".mp4", ".mov", ".mkv", ".avi", ".flv", ".wmv"]:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as audio_tmp:
                 extract_audio_from_video(tmp_path, audio_tmp.name)
@@ -170,10 +173,13 @@ async def transcribe_audio_or_video(
             audio_path = tmp_path
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format")
+        audio_extraction_end = time.perf_counter()
+        print(f"[PERF] Audio extraction took {audio_extraction_end - audio_extraction_start:.2f} seconds.")
 
         print("Transcribing:", audio_path)
 
-        # Choose the transcription model: OpenAI Whisper API or local Whisper
+        # 2) Transcription timing
+        transcription_start = time.perf_counter()
         if provider == "openai" and OPENAI_API_KEY:
             print("Using OpenAI Whisper API")
             text = transcribe_with_openai_whisper(audio_path)
@@ -181,8 +187,14 @@ async def transcribe_audio_or_video(
             print("Using local Whisper model")
             result = model.transcribe(audio_path, language="en")
             text = result["text"]
+        transcription_end = time.perf_counter()
+        print(f"[PERF] Transcription took {transcription_end - transcription_start:.2f} seconds.")
 
+        # 3) Summarization timing
+        summarization_start = time.perf_counter()
         summary = summarize_text(text, provider)
+        summarization_end = time.perf_counter()
+        print(f"[PERF] Summarization took {summarization_end - summarization_start:.2f} seconds.")
 
         return {
             "text": text,
