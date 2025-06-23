@@ -1,185 +1,170 @@
-# VideoToNotes.ai - Guia Completo de Configuração e Uso
+# VideoToNotes.ai - Complete Setup and Usage Guide
 
-Este documento detalha passo a passo como configurar, executar e utilizar o projeto VideoToNotes.ai,  
-que faz transcrição de áudio/vídeo usando Whisper localmente e FastAPI para a API,  
-com resumo automático via modelos LLM rodando localmente pelo Ollama.
-
----
-
-## 1. Pré-requisitos
-
-- Python 3.12 instalado (ou superior)  
-- Docker e Docker Compose instalados (recomendado para evitar poluição do sistema)  
-- git instalado (para clonar o repositório)  
-- FFmpeg instalado (se não usar Docker)  
-- (Opcional) Homebrew para instalar dependências no Mac/Linux, se não usar Docker  
-- Pelo menos 6 GB de RAM livres se for usar modelos LLM via Ollama  
-- Modelos compatíveis com seu hardware (ex: llama3, phi3, gemma)
+This document details step by step how to configure, run, and use the VideoToNotes.ai project, 
+which performs audio/video transcription and summarization using the OpenAI Whisper and GPT APIs, 
+exposed via a FastAPI backend.
 
 ---
 
-## 2. Clonando o projeto
+## 1. Prerequisites
 
-1. Clone o repositório (substitua a URL pelo do seu projeto):
+- Python 3.12 or higher
+- Docker and Docker Compose (recommended for isolation and reproducibility)
+- git (to clone the repository)
+- FFmpeg (if not using Docker)
+- (Optional) Homebrew for installing dependencies on Mac/Linux, if not using Docker
+- An OpenAI account and a valid `OPENAI_API_KEY` (required for transcription and summarization)
 
-    git clone https://github.com/seuusuario/VideoToNotes.ai.git
+---
+
+## 2. Cloning the project
+
+1. Clone the repository (replace the URL with your project):
+
+    git clone https://github.com/youruser/VideoToNotes.ai.git
     cd VideoToNotes.ai
 
 ---
 
-## 3. Configuração do ambiente virtual (sem Docker)
+## 3. Virtual environment setup (without Docker)
 
-1. Crie o ambiente virtual python:
+1. Create a Python virtual environment:
 
         python3 -m venv venv
 
-2. Ative o ambiente virtual:
+2. Activate the virtual environment:
 
-    No Linux/macOS:
+    On Linux/macOS:
 
         source venv/bin/activate
 
-    No Windows:
+    On Windows:
 
         venv\Scripts\activate
 
-3. Instale as dependências do requirements.txt:
+3. Install dependencies:
 
     pip install -r requirements.txt
 
-4. Crie o arquivo `.env` baseado no `.env.example` e configure suas variáveis (ex: API_KEYS, OLLAMA_BASE_URL, OLLAMA_MODEL_NAME)
+4. Create a `.env` file based on `.env.example` and set your environment variables (e.g., `OPENAI_API_KEY`).
 
 ---
 
-## 4. Rodando localmente (sem Docker)
+## 4. Running locally (without Docker)
 
-1. Certifique-se que o ambiente virtual está ativo.  
-2. Execute o app com uvicorn:
+1. Make sure the virtual environment is active.
+2. Run the app with uvicorn:
 
     uvicorn app.main:app --reload
 
-3. O servidor estará rodando em:
+3. The server will be running at:
 
     http://127.0.0.1:8000
 
-4. Para transcrever um áudio, use o endpoint POST `/transcribe` (exemplo via curl ou Postman)
-
-5. Certifique-se que o Ollama está rodando localmente e com o modelo configurado (ex: llama3).  
-   Exemplo para rodar um modelo leve:
-
-    ollama pull llama3  
-    ollama run llama3
+4. To transcribe an audio or video file, use the POST `/transcribe` endpoint (see curl example below).
 
 ---
 
-## 5. Usando Docker (recomendado para ambiente profissional)
+## 5. Using Docker (recommended for production)
 
-1. No diretório raiz, já deve existir o Dockerfile e docker-compose.yml configurados.  
-2. Para buildar e subir o container:
+1. In the root directory, you should already have a Dockerfile and docker-compose.yml configured.
+2. To build and start the container:
 
     docker-compose up --build
 
-3. O app ficará disponível em:
+3. The app will be available at:
 
     http://localhost:8000
 
-4. Para parar o container, use:
+4. To stop the container:
 
     docker-compose down
 
 ---
 
-## 6. Notas importantes e dicas
+## 6. Important notes and tips
 
-- O projeto usa o modelo Whisper para transcrição local (não usa API externa OpenAI).  
-- É necessário o FFmpeg instalado para processar áudio (no Docker já está instalado).  
-- O arquivo `.env` é usado para guardar variáveis de ambiente (ex: chaves, configs, OLLAMA_BASE_URL, OLLAMA_MODEL_NAME).  
-- Use o Docker para evitar instalação local do FFmpeg e outras dependências.  
-- Caso rode localmente, instale FFmpeg pelo Homebrew (macOS):
-
-    brew install ffmpeg
-
-  Se não puder instalar, prefira usar Docker.
-
-- Para uploads grandes, configure o servidor e client para aceitar arquivos maiores.  
-- Para desenvolvimento, `uvicorn --reload` reinicia o servidor ao mudar o código.  
-- Se ocorrer erro de modelo no Ollama dizendo "model requires more system memory", tente usar um modelo menor, como `llama3`, `phi3` ou `gemma`.  
-- Caso o resumo retorne erro 500, verifique se o Ollama está rodando e o modelo está carregado.  
-- Arquivos temporários são limpos automaticamente após processamento.  
-- O Whisper está configurado para o modelo "base" por padrão, pode ser alterado no código.  
-- Para transcrição de vídeos, o áudio é extraído automaticamente via ffmpeg.
+- The project uses the OpenAI Whisper API for transcription and OpenAI GPT models for summarization by default.
+- You must set the `OPENAI_API_KEY` environment variable for the backend to work.
+- FFmpeg is required for audio extraction from video files (already included in the Docker image).
+- The `.env` file is used to store environment variables (e.g., API keys).
+- Use Docker to avoid local installation of FFmpeg and other dependencies.
+- For large uploads, configure both server and client to accept larger files (OpenAI has a 25MB limit per file).
+- For development, `uvicorn --reload` restarts the server on code changes.
+- Temporary files are automatically cleaned up after processing.
+- Whisper is configured for the "base" model by default, but you can change this in the code.
+- For video files, audio is automatically extracted using ffmpeg.
+- If you want to use a local model (e.g., T5) for summarization, set the provider via query string (`?provider=t5`).
 
 ---
 
-## 7. Estrutura do projeto
+## 7. Project structure
 
     /app
-      /main.py           # aplicação FastAPI principal
-      /routers           # endpoints API (se separar depois)
-      /services          # lógica de transcrição e resumo (se refatorar)
-      /models            # schemas Pydantic (se separar depois)
-    Dockerfile           # configura container docker
-    docker-compose.yml   # orquestra container com volumes e portas
-    requirements.txt     # dependências python
-    .env.example         # exemplo de variáveis ambiente
+      /main.py           # Main FastAPI application
+      /questions.py      # Question generation logic
+      /flashcards.py     # Flashcard generation logic
+      /studyplan.py      # Study plan generation logic
+      /utils.py          # Utility functions (token verification, etc)
+    Dockerfile           # Docker container configuration
+    docker-compose.yml   # Orchestrates container with volumes and ports
+    requirements.txt     # Python dependencies
+    .env.example         # Example environment variables
 
 ---
 
-## 8. Exemplos de uso (curl)
+## 8. Usage examples (curl)
 
-Transcrever áudio ou vídeo via curl (substitua arquivo.mp3 pelo seu arquivo):
+Transcribe audio or video via curl (replace file.mp3 with your file):
 
-    curl -X POST "http://localhost:8000/transcribe" -F "file=@arquivo.mp3"
+    curl -X POST "http://localhost:8000/transcribe" -F "file=@file.mp3" -H "Authorization: Bearer <your_jwt_token>"
 
-Transcrever áudio de vídeo do YouTube:
+You can specify the summarization provider (optional, defaults to OpenAI):
 
-    curl -X POST "http://localhost:8000/transcribe_youtube" \
-    -H "Content-Type: application/json" \
-    -d '{"url": "https://www.youtube.com/watch?v=ABC123"}'
+    curl -X POST "http://localhost:8000/transcribe?provider=t5" -F "file=@file.mp3" -H "Authorization: Bearer <your_jwt_token>"
 
 ---
 
-## 9. Problemas comuns e soluções
+## 9. Common issues and solutions
 
-- Erro 'python-multipart' não instalado:  
+- 'python-multipart' not installed:
 
     pip install python-multipart
 
-- Erro SSL certificado:  
-  Pode ser problema local, ignore para localhost ou configure certificados.
+- 'ffmpeg not found':
+  Install ffmpeg or run via Docker.
 
-- Erro 'ffmpeg not found':  
-  Instale ffmpeg ou rode via Docker.
+- 'OPENAI_API_KEY not set' or authentication errors:
+  Make sure you have a valid OpenAI API key in your environment or `.env` file.
 
-- Erro 'AttributeError whisper.load_model':  
-  Certifique-se de instalar a biblioteca correta:  
+- 'File too large' errors:
+  OpenAI Whisper API has a 25MB file size limit. Compress your audio/video or split into smaller parts.
+
+- 'AttributeError whisper.load_model':
+  Make sure to install the correct library:
 
     pip install openai-whisper
 
-- Erro "model requires more system memory" na geração de resumo:  
-  Use um modelo LLM mais leve, ex: `llama3`, `phi3`, `gemma`.
-
-- Erro 500 na API de resumo:  
-  Verifique se o Ollama está rodando e o modelo carregado corretamente.
+- 500 error on summary:
+  Check your OpenAI API key and usage limits.
 
 ---
 
-## 10. Próximos passos para aprimoramento
+## 10. Next steps for improvement
 
-- Adicionar autenticação na API  
-- Implementar front-end web  
-- Melhorar tratamento de erros e logging  
-- Adicionar suporte para mais idiomas e modelos  
-- Upload progressivo e feedback via WebSocket
+- Add more robust authentication to the API
+- Improve error handling and logging
+- Add support for more languages and models
+- Progressive upload and feedback via WebSocket
 
 ---
 
-## Contato
+## Contact
 
-Projeto desenvolvido por Camilo Raitz - Adaptado para VideoToNotes.ai  
-Email: craitz@gmail.com  
+Project developed by Camilo Raitz - Adapted for VideoToNotes.ai
+Email: craitz@gmail.com
 GitHub: https://github.com/craitz
 
 ---
 
-Fim do documento.
+End of document.
