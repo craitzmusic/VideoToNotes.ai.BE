@@ -19,7 +19,7 @@ from studyplan import router as studyplan_router
 # =============================
 # FastAPI application instance
 # =============================
-# Disable /docs, /redoc and /openapi.json for security in production
+# Disable /docs, /redoc and /openapi.json for security reasons in production
 app = FastAPI(
     docs_url=None,
     redoc_url=None,
