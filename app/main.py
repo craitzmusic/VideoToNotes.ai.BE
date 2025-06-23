@@ -16,42 +16,65 @@ from flashcards import router as flashcards_router
 from utils import verify_token, client
 from studyplan import router as studyplan_router
 
-# Desativa /docs, /redoc e /openapi.json
+# =============================
+# FastAPI application instance
+# =============================
+# Disable /docs, /redoc and /openapi.json for security in production
 app = FastAPI(
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
 )
 
+# =============================
+# Middleware configuration
+# =============================
+# CORS: Allow all origins (for production, restrict to your frontend domain)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ou substitua por ["http://localhost:3000"] para maior segurança
+    allow_origins=["*"],  # or replace with ["http://localhost:3000"] for more security
     allow_credentials=True,
-    allow_methods=["*"],  # ou especifique ["POST", "GET", "OPTIONS"]
+    allow_methods=["*"],  # or specify ["POST", "GET", "OPTIONS"]
     allow_headers=["*"],
 )
 
+# Enable GZip compression for responses larger than 1000 bytes
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# =============================
+# External API clients and models
+# =============================
+# OpenAI client for Whisper API and GPT-based summarization
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load Whisper model
+# Load the local Whisper model for audio transcription
 model = whisper.load_model("base")
 
-# Load HuggingFace summarization pipeline with t5-small (local)
+# Load HuggingFace summarization pipeline (T5-small model)
 summarizer = pipeline("summarization", model="t5-small")
 
+# =============================
+# Environment variables and security
+# =============================
 DEFAULT_SUMMARY_PROVIDER = os.getenv("DEFAULT_SUMMARY_PROVIDER", "t5")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET", "insecure_dev_secret")
 
+# HTTP Bearer authentication for protected endpoints
 security = HTTPBearer()
 
+# If using OpenAI as default, set the API key for openai-python
 if DEFAULT_SUMMARY_PROVIDER == "openai" and OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 
+# =============================
+# Authentication helper
+# =============================
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Verifies the JWT token sent in the Authorization header.
+    Raises HTTP 401 if invalid or expired.
+    """
     token = credentials.credentials
     try:
         payload = jwt.decode(token, NEXTAUTH_SECRET, algorithms=["HS256"])
@@ -60,7 +83,14 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         print("JWT validation error:", e)
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
+# =============================
+# Summarization helper
+# =============================
 def summarize_text(text: str, provider: str = None) -> str:
+    """
+    Summarizes the given text using either OpenAI GPT or local T5 model.
+    Truncates text to 5000 characters for performance/safety.
+    """
     provider = provider or DEFAULT_SUMMARY_PROVIDER
     try:
         if len(text) > 5000:
@@ -78,7 +108,7 @@ def summarize_text(text: str, provider: str = None) -> str:
             )
             return response.choices[0].message.content.strip()
 
-        # fallback para T5
+        # fallback to T5
         summary = summarizer(text, max_length=150, min_length=40, do_sample=False)
         return summary[0]["summary_text"]
 
@@ -86,8 +116,14 @@ def summarize_text(text: str, provider: str = None) -> str:
         print(f"Error during summarization: {e}")
         return "Summary generation failed."
 
-
+# =============================
+# Audio extraction helper
+# =============================
 def extract_audio_from_video(video_path, audio_path):
+    """
+    Extracts audio from a video file using ffmpeg.
+    The output is a compressed AAC file (mono, 16kHz, 48kbps) to minimize size for API limits.
+    """
     command = [
         "ffmpeg",
         "-y",
@@ -101,22 +137,31 @@ def extract_audio_from_video(video_path, audio_path):
     ]
     subprocess.run(command, check=True)
 
-
+# =============================
+# Main transcription endpoint
+# =============================
 @app.post("/transcribe")
 async def transcribe_audio_or_video(
     request: Request,
     file: UploadFile = File(...),
     user=Depends(verify_token)
 ):
+    """
+    Receives an audio or video file via upload, extracts audio if needed,
+    transcribes using OpenAI Whisper API or local Whisper model,
+    summarizes the transcription, and returns both.
+    The provider can be set via query string (?provider=openai or ?provider=t5).
+    """
     provider = request.query_params.get("provider")  # e.g., ?provider=openai
     suffix = os.path.splitext(file.filename)[1].lower()
     
+    # Save uploaded file to a temporary location
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
     try:
-        # Determine audio path
+        # Determine audio path: extract if video, use as-is if audio
         if suffix in [".mp4", ".mov", ".mkv", ".avi", ".flv", ".wmv"]:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as audio_tmp:
                 extract_audio_from_video(tmp_path, audio_tmp.name)
@@ -128,7 +173,7 @@ async def transcribe_audio_or_video(
 
         print("Transcribing:", audio_path)
 
-        # Escolhe o modelo de transcrição
+        # Choose the transcription model: OpenAI Whisper API or local Whisper
         if provider == "openai" and OPENAI_API_KEY:
             print("Using OpenAI Whisper API")
             text = transcribe_with_openai_whisper(audio_path)
@@ -145,6 +190,7 @@ async def transcribe_audio_or_video(
         }
 
     finally:
+        # Clean up temporary files
         try:
             os.remove(tmp_path)
         except Exception:
@@ -155,8 +201,14 @@ async def transcribe_audio_or_video(
             except Exception:
                 pass
 
-
+# =============================
+# OpenAI Whisper API helper
+# =============================
 def transcribe_with_openai_whisper(file_path: str) -> str:
+    """
+    Sends the audio file to OpenAI Whisper API for transcription.
+    Returns the transcribed text.
+    """
     with open(file_path, "rb") as audio_file:
         response = client.audio.transcriptions.create(
             model="whisper-1",
@@ -164,6 +216,9 @@ def transcribe_with_openai_whisper(file_path: str) -> str:
         )
         return response.text
 
+# =============================
+# Routers for additional features (questions, flashcards, study plan)
+# =============================
 app.include_router(questions_router)
 app.include_router(flashcards_router)
 app.include_router(studyplan_router)
