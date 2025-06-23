@@ -1,4 +1,4 @@
-#!/bin/zsh (23/06/2025)
+#!/bin/zsh
 
 echo "🛑 Stopping and removing containers..."
 docker compose down

@@ -51,9 +51,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Load the local Whisper model for audio transcription
 model = whisper.load_model("base")
 
-# Load HuggingFace summarization pipeline (T5-small model)
-summarizer = pipeline("summarization", model="t5-small")
-
 # =============================
 # Environment variables and security
 # =============================
@@ -87,10 +84,14 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 # =============================
 # Summarization helper
 # =============================
+# Add global cache for the summarizer
+summarizer_cache = {}
+
 def summarize_text(text: str, provider: str = None) -> str:
     """
     Summarizes the given text using either OpenAI GPT or local T5 model.
     Truncates text to 5000 characters for performance/safety.
+    Loads the T5 model only if needed (provider == 't5').
     """
     provider = provider or DEFAULT_SUMMARY_PROVIDER
     try:
@@ -109,7 +110,11 @@ def summarize_text(text: str, provider: str = None) -> str:
             )
             return response.choices[0].message.content.strip()
 
-        # fallback to T5
+        # Only load T5 summarizer if needed, and cache it
+        if "t5" not in summarizer_cache:
+            from transformers import pipeline
+            summarizer_cache["t5"] = pipeline("summarization", model="t5-small")
+        summarizer = summarizer_cache["t5"]
         summary = summarizer(text, max_length=150, min_length=40, do_sample=False)
         return summary[0]["summary_text"]
 
