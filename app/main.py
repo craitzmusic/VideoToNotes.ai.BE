@@ -154,13 +154,17 @@ async def transcribe_audio_or_video(
     The provider can be set via query string (?provider=openai or ?provider=t5).
     Logs the time spent in each main operation.
     """
+    total_start = time.perf_counter()
     provider = request.query_params.get("provider")  # e.g., ?provider=openai
     suffix = os.path.splitext(file.filename)[1].lower()
     
     # Save uploaded file to a temporary location
+    upload_start = time.perf_counter()
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
+    upload_end = time.perf_counter()
+    print(f"[PERF] File save (upload write) took {upload_end - upload_start:.2f} seconds.")
 
     try:
         # 1) Audio extraction timing
@@ -202,6 +206,8 @@ async def transcribe_audio_or_video(
         }
 
     finally:
+        total_end = time.perf_counter()
+        print(f"[PERF] Total endpoint time: {total_end - total_start:.2f} seconds.")
         # Clean up temporary files
         try:
             os.remove(tmp_path)
