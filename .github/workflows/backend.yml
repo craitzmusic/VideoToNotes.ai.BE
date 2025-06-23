@@ -8,11 +8,6 @@ on:
       - 'Dockerfile'
       - 'docker-compose*'
   pull_request:
-    paths:
-      - 'app/**'
-      - 'requirements.txt'
-      - 'Dockerfile'
-      - 'docker-compose*'
 
 jobs:
   build:
