@@ -84,7 +84,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 # =============================
 # Summarization helper
 # =============================
-# Add a global cache for the summarizer
+# Add global cache for the summarizer
 summarizer_cache = {}
 
 def summarize_text(text: str, provider: str = None) -> str:
