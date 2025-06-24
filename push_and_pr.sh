@@ -11,6 +11,13 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+# Check if user is authenticated with GitHub CLI
+gh auth status &> /dev/null
+if [ $? -ne 0 ]; then
+  echo "[ERROR] You are not authenticated with GitHub CLI. Please run: gh auth login"
+  exit 1
+fi
+
 COMMIT_MSG="$1"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
