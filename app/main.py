@@ -46,9 +46,9 @@ app.add_middleware(
 # Enable GZip compression for responses larger than 1000 bytes
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# =============================
+# ================================
 # External API clients and models
-# =============================
+# ================================
 # OpenAI client for Whisper API and GPT-based summarization
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

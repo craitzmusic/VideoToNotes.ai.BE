@@ -85,10 +85,10 @@ t0=$(timer_start)
 gh pr merge --auto --squash
 log_done $(timer_end $t0)
 
-# Open PR in browser
-log_step "Opening PR in browser..."
-if command -v open &> /dev/null; then
-  open "$PR_URL"
+# Open PR in Google Chrome (macOS) or default browser elsewhere
+log_step "Opening PR in Google Chrome..."
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  open -a "Google Chrome" "$PR_URL"
 elif command -v xdg-open &> /dev/null; then
   xdg-open "$PR_URL"
 elif command -v start &> /dev/null; then
