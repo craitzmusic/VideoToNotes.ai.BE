@@ -24,12 +24,17 @@ async def generate_study_guide_pdf(data: StudyGuidePDFRequest, user=Depends(veri
         "You are an expert educational content creator. "
         "Given the transcript below, divide the content into clear, didactic topics. "
         "For each topic, write a concise summary/explanation. "
-        "After the explanation, generate 3 multiple-choice quiz questions. "
-        "For each question, show the question statement (enunciation) followed by the alternatives (a), b), c), d)), all together in the Quiz Questions section. "
-        "For the alternatives, use letters: a), b), c), d) instead of numbers. "
-        "After the title 'Quiz Questions:', add a blank line or extra spacing before the first question. "
-        "Format the output in HTML, using <h2> for topic titles, <p> for explanations, and <ul> for quizzes. "
-        "At the end, include an Answer Key section listing only the question number and the correct letter (e.g., 1. b), 2. d), ...). Do NOT repeat the full question statement in the Answer Key. "
+        "After the explanation, generate exactly 3 multiple-choice quiz questions. "
+        "For each question, ALWAYS show the question statement (enunciation) followed by the alternatives, using HTML. "
+        "The alternatives MUST be in an ordered list <ol type='a'>, so they are always labeled a), b), c), d). NEVER use numbers, bullets, or any other format. "
+        "NEVER omit the question statement. NEVER use code blocks, markdown, or any extra titles. "
+        "The HTML for each question MUST look like this: "
+        "<p>What is the capital of France?</p>\n<ol type='a'>\n<li>Berlin</li>\n<li>London</li>\n<li>Paris</li>\n<li>Rome</li>\n</ol> "
+        "After the questions, add a section titled <h3>Answer Key</h3> and list ONLY the question number and the correct letter, like: "
+        "1. c)\n2. a)\n3. d)\n. Do NOT repeat the question statement in the Answer Key. "
+        "NEVER vary this format, even if the input text is different. "
+        "Format the output in HTML, using <h2> for topic titles, <p> for explanations, and <ol type='a'> for alternatives. "
+        "At the end, include the Answer Key as above. "
         "Do NOT include any markdown code block (no triple backticks). "
         "Transcript:\n" + data.transcript
     )
@@ -46,9 +51,11 @@ async def generate_study_guide_pdf(data: StudyGuidePDFRequest, user=Depends(veri
             temperature=0.5,
         )
         structured_html = response.choices[0].message.content
-        # Remove any markdown code block (```html, ```) from the response
+        # Remove markdown code blocks
         structured_html = re.sub(r"```[a-zA-Z]*", "", structured_html)
         structured_html = structured_html.replace("```", "")
+        # Força <ol type='a'> nas alternativas
+        structured_html = re.sub(r"<ol[^>]*>", "<ol type='a'>", structured_html)
     except Exception as e:
         print("Error calling OpenAI for study guide structuring:", e)
         raise HTTPException(status_code=500, detail="Failed to structure study guide with ChatGPT.")
