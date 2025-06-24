@@ -1,12 +1,12 @@
 import os
-from openai import OpenAI
+from openai import AsyncOpenAI
 from fastapi import HTTPException, Depends
 from jose import jwt, JWTError
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET", "insecure_dev_secret")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()

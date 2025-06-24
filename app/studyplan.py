@@ -35,7 +35,7 @@ async def generate_studyplan(req: StudyPlanRequest, user=Depends(verify_token)):
     ).replace("{num_reviews}", str(req.num_reviews))
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Você é um assistente que cria planos de estudo personalizados a partir de textos."},

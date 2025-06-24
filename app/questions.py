@@ -32,6 +32,7 @@ async def generate_questions(req: QuestionRequest, user=Depends(verify_token)):
         "Cada questão deve ter 4 alternativas, apenas uma correta. "
         "Embaralhe a ordem das alternativas em cada questão, de modo que a correta não seja sempre a primeira. "
         "Responda SOMENTE com um array JSON, começando sua resposta diretamente com '[' e nada antes disso. Não adicione explicações ou comentários. "
+        "As alternativas devem conter APENAS o texto da opção, SEM NENHUM NÚMERO, LETRA (a, b, c) ou SÍMBOLO (-, *, etc.) na frente. "
         "Formato:\n"
         "[\n"
         "  {\"enunciado\":\"...\", \"alternativas\":[\"...\",\"...\",\"...\",\"...\"], \"correta\":0, \"explicacao\":\"...\" },\n"
@@ -41,7 +42,7 @@ async def generate_questions(req: QuestionRequest, user=Depends(verify_token)):
     )
 
     # Call OpenAI GPT model to generate questions
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "Você é um gerador de questões para concursos."},
@@ -60,8 +61,18 @@ async def generate_questions(req: QuestionRequest, user=Depends(verify_token)):
             print("Raw model output:", content)
             raise HTTPException(status_code=500, detail="Model did not return valid JSON")
         questions = json.loads(match.group(0))
-        # Shuffle alternatives for each question and update the correct index
+        # Post-process alternatives to ensure no leading numbers or letters from LLM
         for q in questions:
+            cleaned_alternatives = []
+            for alt in q["alternativas"]:
+                # Remove common prefixes like '1.', 'a)', 'A.', '- ' etc.
+                cleaned_alt = re.sub(r"^[\d]+\.\s*", "", alt).strip()  # 1., 2.
+                cleaned_alt = re.sub(r"^[a-zA-zA-Z][\)\.]\s*", "", cleaned_alt).strip() # a), b), A., B.
+                cleaned_alt = re.sub(r"^[-*]\s*", "", cleaned_alt).strip() # - , * 
+                cleaned_alternatives.append(cleaned_alt)
+            q["alternativas"] = cleaned_alternatives
+
+            # Shuffle alternatives for each question and update the correct index
             alternatives = q["alternativas"]
             correct_idx = q["correta"]
             correct_answer = alternatives[correct_idx]
