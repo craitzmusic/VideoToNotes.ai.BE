@@ -55,9 +55,9 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Load the local Whisper model for audio transcription
 model = whisper.load_model("base")
 
-# =============================
+# ===================================
 # Environment variables and security
-# =============================
+# ===================================
 DEFAULT_SUMMARY_PROVIDER = os.getenv("DEFAULT_SUMMARY_PROVIDER", "t5")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET", "insecure_dev_secret")

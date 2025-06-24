@@ -110,6 +110,9 @@ while true; do
   PR_STATE=$(gh pr view "$PR_NUMBER" --json state -q ".state")
   if [ "$PR_STATE" = "MERGED" ]; then
     echo -e "   ${CHECK} PR #$PR_NUMBER has been merged!"
+    # Play a beep sound and show a highlighted message
+    echo -e "\a"
+    echo -e "${YELLOW}🔔 Merge complete! You can close the PR tab in Chrome. 🔔${NC}"
     break
   fi
   echo -e "   ${WAIT} Waiting... (current state: $PR_STATE)"
