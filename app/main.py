@@ -16,6 +16,10 @@ from flashcards import router as flashcards_router
 from utils import verify_token, client
 from studyplan import router as studyplan_router
 import time
+from fastapi.responses import StreamingResponse
+import io
+from weasyprint import HTML
+from studyguide import router as studyguide_router
 
 # =============================
 # FastAPI application instance
@@ -245,3 +249,4 @@ def transcribe_with_openai_whisper(file_path: str) -> str:
 app.include_router(questions_router)
 app.include_router(flashcards_router)
 app.include_router(studyplan_router)
+app.include_router(studyguide_router)
