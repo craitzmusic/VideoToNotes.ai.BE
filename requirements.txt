@@ -11,3 +11,4 @@ transformers
 torch
 python-jose[cryptography]
 weasyprint
+spacy

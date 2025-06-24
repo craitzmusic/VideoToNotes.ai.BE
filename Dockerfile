@@ -15,11 +15,14 @@ RUN useradd -m appuser
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download the Portuguese spaCy model for semantic segmentation
+RUN python -m spacy download pt_core_news_sm
+
 # Copy application code and files that change frequently
 COPY app /app
 
 # Set the user to non-root for security
 USER appuser
 
-# Default: run Uvicorn server in production mode
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default: run Uvicorn server in production mode with unbuffered output for real-time logs
+CMD ["python", "-u", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# rebuild.sh
-# Fully rebuilds and starts Docker Compose services for the backend, bringing down existing services first.
+# clean_rebuild.sh
+# Fully cleans, rebuilds, and starts Docker Compose services for the backend.
 # Shows colored logs, icons, and timing for each step.
 
 set -e
@@ -46,9 +46,14 @@ t0=$(timer_start)
 docker compose down
 log_done $(timer_end $t0)
 
-log_step "Rebuilding and starting Docker services..."
+log_step "Building Docker images without cache..."
 t0=$(timer_start)
-docker compose up --build
+docker compose build --no-cache
 log_done $(timer_end $t0)
 
-echo -e "\n${GREEN}🎉 Docker rebuild and startup complete!${NC}"
+log_step "Starting Docker services..."
+t0=$(timer_start)
+docker compose up
+log_done $(timer_end $t0)
+
+echo -e "\n${GREEN}🎉 Docker clean rebuild and startup complete!${NC}" 
