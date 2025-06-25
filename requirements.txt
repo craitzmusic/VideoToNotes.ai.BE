@@ -12,3 +12,4 @@ torch
 python-jose[cryptography]
 weasyprint
 spacy
+mcp[cli]

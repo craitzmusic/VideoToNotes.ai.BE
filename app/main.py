@@ -91,7 +91,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 # Add global cache for the summarizer
 summarizer_cache = {}
 
-async def summarize_text(text: str, provider: str = None) -> str:
+def summarize_text(text: str, provider: str = None) -> str:
     """
     Summarizes the given text using either OpenAI GPT or local T5 model.
     Truncates text to 5000 characters for performance/safety.
@@ -103,7 +103,7 @@ async def summarize_text(text: str, provider: str = None) -> str:
             text = text[:5000]
 
         if provider == "openai" and os.getenv("OPENAI_API_KEY"):
-            response = await client.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that summarizes content."},
@@ -195,7 +195,7 @@ async def transcribe_audio_or_video(
         transcription_start = time.perf_counter()
         if provider == "openai" and OPENAI_API_KEY:
             print("Using OpenAI Whisper API")
-            text = await transcribe_with_openai_whisper(audio_path)
+            text = transcribe_with_openai_whisper(audio_path)
         else:
             print("Using local Whisper model")
             result = model.transcribe(audio_path, language="en")
@@ -205,7 +205,7 @@ async def transcribe_audio_or_video(
 
         # 3) Summarization timing
         summarization_start = time.perf_counter()
-        summary = await summarize_text(text, provider)
+        summary = summarize_text(text, provider)
         summarization_end = time.perf_counter()
         print(f"[PERF] Summarization took {summarization_end - summarization_start:.2f} seconds.")
 
@@ -231,13 +231,13 @@ async def transcribe_audio_or_video(
 # =============================
 # OpenAI Whisper API helper
 # =============================
-async def transcribe_with_openai_whisper(file_path: str) -> str:
+def transcribe_with_openai_whisper(file_path: str) -> str:
     """
     Sends the audio file to OpenAI Whisper API for transcription.
     Returns the transcribed text.
     """
     with open(file_path, "rb") as audio_file:
-        response = await client.audio.transcriptions.create(
+        response = client.audio.transcriptions.create(
             model="whisper-1",
             file=audio_file
         )
